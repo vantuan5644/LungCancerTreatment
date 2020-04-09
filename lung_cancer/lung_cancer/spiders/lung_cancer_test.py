@@ -11,8 +11,8 @@ class NonSmallLungCancer(scrapy.Spider):
     name = 'ns_lung_cancer'
 
     start_urls = ['https://www.cancer.org/cancer/lung-cancer/treating-non-small-cell/by-stage.html',
-                  'https://www.lungcancer.org/find_information/publications/163-lung_cancer_101/269-non_small_cell_lung_cancer_treatment',
-                  'https://www.cancer.net/cancer-types/lung-cancer-non-small-cell/types-treatment',
+                  # 'https://www.lungcancer.org/find_information/publications/163-lung_cancer_101/269-non_small_cell_lung_cancer_treatment',
+                  # 'https://www.cancer.net/cancer-types/lung-cancer-non-small-cell/types-treatment',
                   ]
 
     def parse(self, response):
@@ -32,16 +32,13 @@ class NonSmallLungCancer(scrapy.Spider):
             title = response.xpath("//div/h2/text()").extract_first()
             main_content = response.xpath("//div[contains(@class, 'field-item')]//node()").getall()
 
-        yield {'title': title}
+        # yield {'title': title}
         # ref_text = response.xpath("//p/a[contains(@href, '')]").xpath('normalize-space(.)').extract()
 
         for node in main_content:
             if node[0] == '<':
                 node_type = node[0:node.find('>')+1]
-                yield {
-                    # node_type: node.replace(node_type, ''),
-                    node_type: self.remove_tags(node)
-                }
+                yield {node_type: self.remove_tags(node)}
 
     @staticmethod
     def remove_tags(text):

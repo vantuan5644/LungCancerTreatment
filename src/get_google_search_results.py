@@ -17,11 +17,15 @@ def get_search_results_urls(query):
     return googlesearch.search(query=query, tld='com', lang='en', start=0, stop=10)
 
 
-if __name__ == "__main__":
-    search_term = 'Lung cancer treatment "stage 1"'
+def lung_cancer_treatment_result(stage: str, num_results: int):
+    search_term = 'Lung cancer treatment' + stage
     # result = get_search_results_urls(search_term)
     # for i in result:
     #     print(i)
-    results = google_search(search_term, num=10)
+    results = google_search(search_term, num=num_results)
     results = [result['link'] for result in results]
-    pass
+    return results
+
+
+if __name__ == "__main__":
+    lung_cancer_treatment_result(stage='"stage 2"', num_results=10)
