@@ -1,3 +1,5 @@
+import time
+
 import pandas as pd
 import os
 from urllib.parse import urlparse
@@ -53,17 +55,15 @@ class LungCancerPipeline(object):
 
 
 if __name__ == "__main__":
-    stage = '"stage 1"'
-    csv_file = 'nslc.csv'
-    if os.path.exists(csv_file):
-        os.remove(csv_file)
+    stages = map(lambda x: f'"stage {x}"', range(5))
+    for i, keyword in enumerate(stages):
+        print(keyword)
+        csv_file = f'data_crawled/stage_{i}.csv'
+        if os.path.exists(csv_file):
+            os.remove(csv_file)
+        start_urls = lung_cancer_treatment_result(keyword, num_results=10)
+        process = CrawlerProcess(settings={'FEED_FORMAT': 'csv',
+                                           'FEED_URI': csv_file})
 
-    start_urls = lung_cancer_treatment_result(stage, num_results=10)
-    process = CrawlerProcess(settings={'FEED_FORMAT': 'csv',
-                                       'FEED_URI': csv_file})
-
-    process.crawl(BigLungCancer, start_urls=start_urls)
+        process.crawl(BigLungCancer, start_urls=start_urls)
     process.start()  # the script will block here until the crawling is finished
-    crawled_data = pd.read_csv(csv_file)
-
-    pass

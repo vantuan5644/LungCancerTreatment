@@ -8,7 +8,7 @@ my_cse_id = settings.CSE_ID
 
 
 def google_search(query, api_key=my_api_key, cse_id=my_cse_id, **kwargs):
-    service = build("customsearch", "v1", developerKey=api_key)
+    service = build("customsearch", "v1", developerKey=api_key, cache_discovery=False)
     res = service.cse().list(q=query, cx=cse_id, **kwargs).execute()
     return res['items']
 
