@@ -23,8 +23,10 @@ def lung_cancer_treatment_result(stage: str, num_results: int):
     # for i in result:
     #     print(i)
     results = google_search(search_term, num=num_results)
-    results = [result['link'] for result in results]
-    return results
+    links = [result['link'] for result in results]
+    titles = [result['title'] for result in results]
+    snippets = [result['snippet'] for result in results]
+    return links, titles, snippets
 
 
 if __name__ == "__main__":

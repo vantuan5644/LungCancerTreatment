@@ -13,21 +13,30 @@ from src.get_google_search_results import lung_cancer_treatment_result
 
 
 class BigLungCancer(scrapy.Spider):
+
     name = 'nslc_treatment'
+
+    def __init__ (self, category='', **kwargs):
+        super().__init__(**kwargs)  # python3
 
     def parse(self, response):
         self.logger.info("Processing:" + response.url)
-
         text = [' '.join(line.strip() for line in p.xpath('.//text()').extract() if line.strip()) for p in
                 response.xpath('//p')]
         base_url = '{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(response.url))
+        base_urls = ['{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)) for url in self.start_urls]
         # paragraphs = response.xpath('//p')
         # largest_p = paragraphs[0]
         # for p in paragraphs:
         #     if len(''.join(p.xpath('.//text()').getall())) > len(''.join(largest_p.xpath('.//text()').getall())):
         #         largest_p = p
+        index = base_urls.index(base_url)
+        title = self.titles[index]
+        snippet = self.snippets[index]
 
-        yield {'base_url': base_url,
+        yield {'url': response.url,
+               'title': title,
+               'snippet': snippet,
                'text': text,
                }
 
@@ -61,9 +70,10 @@ if __name__ == "__main__":
         csv_file = f'data_crawled/stage_{i}.csv'
         if os.path.exists(csv_file):
             os.remove(csv_file)
-        start_urls = lung_cancer_treatment_result(keyword, num_results=10)
+        start_urls, titles, snippets = lung_cancer_treatment_result(keyword, num_results=10)
         process = CrawlerProcess(settings={'FEED_FORMAT': 'csv',
-                                           'FEED_URI': csv_file})
+                                           'FEED_URI': csv_file,
+                                           'ROBOTSTXT_OBEY': False})
 
-        process.crawl(BigLungCancer, start_urls=start_urls)
+        process.crawl(BigLungCancer, start_urls=start_urls, titles=titles, snippets=snippets)
     process.start()  # the script will block here until the crawling is finished
