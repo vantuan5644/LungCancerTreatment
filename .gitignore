@@ -3,3 +3,7 @@
 /src/.ipynb_checkpoints/
 
 .idea
+
+venv
+
+*/__pycache__

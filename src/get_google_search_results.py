@@ -17,8 +17,9 @@ def get_search_results_urls(query):
     return googlesearch.search(query=query, tld='com', lang='en', start=0, stop=10)
 
 
-def lung_cancer_treatment_result(stage: str, num_results: int):
-    search_term = 'Lung cancer treatment' + stage
+def get_google_search_results(search_term: str, num_results: int = 10):
+    # search_term = 'Lung cancer treatment' + search_term
+
     # result = get_search_results_urls(search_term)
     # for i in result:
     #     print(i)
@@ -28,6 +29,3 @@ def lung_cancer_treatment_result(stage: str, num_results: int):
     snippets = [result['snippet'] for result in results]
     return links, titles, snippets
 
-
-if __name__ == "__main__":
-    lung_cancer_treatment_result(stage='"stage 2"', num_results=10)
