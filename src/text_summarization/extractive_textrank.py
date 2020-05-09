@@ -46,19 +46,18 @@ def load_data(stage: str):
 # Split text into sentences
 from nltk.tokenize import sent_tokenize
 
-def sentence_spliting(sentences: list):
-    for s in sentences:
-        sentences.append(sent_tokenize(s))
+def sentence_spliting(text: str):
+    sentences = sent_tokenize(text)
 
-    sentences = [y for x in sentences for y in x] # flatten list
-    print('First 5 sentences:', sentences[:5])
+    # sentences = [y for x in sentences for y in x] # flatten list
+    print('First 3 sentences:', sentences[:3])
     return sentences
 
 # ### Make sentences embeddings from GloVe
 
 def glove_downloader():
     glove_folder = os.path.join(settings.PROJECT_ROOT, 'text_summarization', 'GloVe_embeddings')
-    file_path = os.path.join('glove.6B.zip')
+    file_path = os.path.join(glove_folder, 'glove.6B.zip')
     if not os.path.isfile(file_path):
         urllib.request.urlretrieve('http://nlp.stanford.edu/data/glove.6B.zip', file_path)
         zip = zipfile.ZipFile(file_path)

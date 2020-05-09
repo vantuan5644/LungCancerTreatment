@@ -1,4 +1,4 @@
-/src/.env
+.env
 **/*.ipynb_checkpoints/
 /src/.ipynb_checkpoints/
 
@@ -10,3 +10,4 @@ venv
 
 *.pyc
 /src/text_summarization/glove.6B.zip
+
