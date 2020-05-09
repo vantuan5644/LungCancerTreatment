@@ -9,3 +9,4 @@ venv
 */__pycache__
 
 *.pyc
+/src/text_summarization/glove.6B.zip
