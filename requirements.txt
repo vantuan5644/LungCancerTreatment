@@ -1,2 +1,5 @@
 pandas
 Scrapy
+google-api-python-client
+google-search
+python-dotenv

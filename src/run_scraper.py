@@ -1,4 +1,5 @@
 import os
+import re
 from urllib.parse import urlparse
 import numpy as np
 import scrapy
@@ -6,6 +7,7 @@ from scrapy import signals
 from scrapy.crawler import CrawlerProcess
 from scrapy.exporters import CsvItemExporter
 
+import settings
 from src.get_google_search_results import get_google_search_results
 
 
@@ -22,22 +24,57 @@ class BigLungCancer(scrapy.Spider):
 
         texts = []
 
-        for father_node, child_node in [('h2', 'p'), ('ul', 'li'), ('h3', 'p')]:
+        """
+        First pattern:
+        <h>
+        <p>
+        <p>
+        """
+
+        for first_node, following_node in [('h2', 'p'), ('h3', 'p')]:
             for stage in stages:
                 self.logger.debug(stage)
-                selectors = response.xpath(f'//*[preceding-sibling::h2[contains(concat(" ", ., " ")," {stage} ")]]')
+                selectors = response.xpath(
+                    f'//*[preceding-sibling::{first_node}[contains(concat(" ", translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), " ")," {stage} ")]]')
                 for selector in selectors:
                     tag = selector.xpath('name()').get()
-                    if tag == child_node:
-                        paragraph = ' '.join(line.strip() for line in selector.xpath('.//text()').extract() if line.strip())
+                    if tag == following_node:
+                        paragraph = ' '.join(
+                            line.strip() for line in selector.xpath('.//text()[re:test(., "\w+")]').extract() if
+                            line.strip())
                         if len(paragraph) > 0:
+                            paragraph = re.sub('\.,', '\. ', paragraph)
                             texts.append(paragraph)
                     else:
                         break
-        index = base_urls.index(base_url)
+        """
+        Second pattern: 
+        <h>
+        <div>
+          <p>
+          <p>
+        """
+        # if len(texts) == 0:
+        #     for first_node, following_node in [('h2', 'p'), ('h3', 'p')]:
+        #         for stage in stages:
+        #             selector = response.xpath(
+        #                 f'//{first_node}[contains(concat(" ", translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), " "), " {stage} ")]/parent::node()//{following_node}//node()')
+        #             paragraph = ' '.join(
+        #                 line.strip() for line in selector.xpath('.//text()[re:test(., "\w+")]').extract() if line.strip())
+        #             if len(paragraph) > 0:
+        #                 texts.append(paragraph)
+
         titles = getattr(self, 'titles', None)
-        title = titles[index]
-        snippet = getattr(self, 'snippets', None)
+        snippets = getattr(self, 'snippets', None)
+        if base_url in base_urls:
+            index = base_urls.index(base_url)
+            title = titles[index]
+            snippet = snippets[index]
+        else:
+            title = None
+            snippet = None
+
+        self.logger.debug(texts)
         yield {'url': response.url,
                'title': title,
                'snippet': snippet,
@@ -87,7 +124,7 @@ if __name__ == "__main__":
     # The other forms of the keyword
 
     for i, (keyword, stages) in enumerate(stages_map.items()):
-        csv_file = f'data_crawled/{keyword}.csv'
+        csv_file = os.path.join(settings.PROJECT_ROOT, 'data_crawled', f'{keyword}.csv')
         if os.path.exists(csv_file):
             os.remove(csv_file)
 
@@ -98,12 +135,12 @@ if __name__ == "__main__":
                         ]
         for search_term in search_terms:
             urls, titles, snippets = get_google_search_results(search_term=search_term)
-            final_urls = list(sorted(set(final_urls + urls)))
-            final_titles = list(sorted(set(final_titles + titles)))
-            final_snippets = list(sorted(set(final_snippets + snippets)))
+            final_urls = list(set(final_urls + urls))
+            final_titles = list(set(final_titles + titles))
+            final_snippets = list(set(final_snippets + snippets))
         process = CrawlerProcess(settings={'FEED_FORMAT': 'csv',
                                            'FEED_URI': csv_file,
-                                           'ROBOTSTXT_OBEY': False})
+                                           'ROBOTSTXT_OBEY': True})
 
         process.crawl(BigLungCancer, start_urls=final_urls, titles=final_titles, snippets=final_snippets, stages=stages)
     process.start()  # The script will block here until the crawling is finished
