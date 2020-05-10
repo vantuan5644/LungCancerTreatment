@@ -9,5 +9,5 @@ venv
 */__pycache__
 
 *.pyc
-/src/text_summarization/glove.6B.zip
 
+/src/text_summarization/GloVe_embeddings/
