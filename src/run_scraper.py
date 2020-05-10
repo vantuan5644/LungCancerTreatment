@@ -1,6 +1,7 @@
 import os
 import re
 from urllib.parse import urlparse
+
 import numpy as np
 import scrapy
 from scrapy import signals
@@ -33,6 +34,7 @@ class BigLungCancer(scrapy.Spider):
 
         for first_node, following_node in [('h2', 'p'), ('h3', 'p')]:
             for stage in stages:
+                stage = stage.lower()
                 self.logger.debug(stage)
                 selectors = response.xpath(
                     f'//*[preceding-sibling::{first_node}[contains(concat(" ", translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), " ")," {stage} ")]]')
@@ -40,10 +42,9 @@ class BigLungCancer(scrapy.Spider):
                     tag = selector.xpath('name()').get()
                     if tag == following_node:
                         paragraph = ' '.join(
-                            line.strip() for line in selector.xpath('.//text()[re:test(., "\w+")]').extract() if
-                            line.strip())
+                            line.strip() for line in selector.xpath('.//text()').extract() if line.strip())
                         if len(paragraph) > 0:
-                            paragraph = re.sub('\.,', '\. ', paragraph)
+                            # paragraph = re.sub('\.,', '\. ', paragraph)
                             texts.append(paragraph)
                     else:
                         break
@@ -54,15 +55,15 @@ class BigLungCancer(scrapy.Spider):
           <p>
           <p>
         """
-        # if len(texts) == 0:
-        #     for first_node, following_node in [('h2', 'p'), ('h3', 'p')]:
-        #         for stage in stages:
-        #             selector = response.xpath(
-        #                 f'//{first_node}[contains(concat(" ", translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), " "), " {stage} ")]/parent::node()//{following_node}//node()')
-        #             paragraph = ' '.join(
-        #                 line.strip() for line in selector.xpath('.//text()[re:test(., "\w+")]').extract() if line.strip())
-        #             if len(paragraph) > 0:
-        #                 texts.append(paragraph)
+        if len(texts) == 0:
+            for first_node, following_node in [('h2', 'p'), ('h3', 'p')]:
+                for stage in stages:
+                    selector = response.xpath(
+                        f'//{first_node}[contains(concat(" ", translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"), " "), " {stage} ")]/parent::node()//{following_node}//node()')
+                    paragraph = ' '.join(
+                        line.strip() for line in selector.xpath('.//text()').extract() if line.strip())
+                    if len(paragraph) > 0:
+                        texts.append(paragraph)
 
         titles = getattr(self, 'titles', None)
         snippets = getattr(self, 'snippets', None)
@@ -114,13 +115,14 @@ if __name__ == "__main__":
       - Type 1: <ul> <li>
       - Type 2: <h2> <p>
     """
-    stages_map = {'stage 0': ['stage 0'],
-                  'stage 1': ['stage 1', 'stage I'],
-                  'stage 2': ['stage 2', 'stage II'],
-                  'stage 3a': ['stage 3a', 'stage IIIA'],
-                  'stage 3b': ['stage 3b', 'stage IIIB'],
-                  'stage 4': ['stage 4', 'stage IV'],
-                  }
+    stages_map = {
+        'stage 0': ['stage 0'],
+        'stage 1': ['stage 1', 'stage I'],
+        'stage 2': ['stage 2', 'stage II'],
+        'stage 3a': ['stage 3a', 'stage IIIA'],
+        'stage 3b': ['stage 3b', 'stage IIIB'],
+        'stage 4': ['stage 4', 'stage IV'],
+    }
     # The other forms of the keyword
 
     for i, (keyword, stages) in enumerate(stages_map.items()):

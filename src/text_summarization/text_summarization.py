@@ -3,28 +3,29 @@
 
 # # TextRank
 
+import os
+import re
 # Automatic text summarization is the task of producing a concise and fluent summary while preserving key information
 # content and overall meaning.
-# 
+#
 # 1. Extractive Summarization
 #  - Identifying the important sentences or phrases from the original text and extract only those from the text.
-# 
+#
 # 2. Abstractive Summarization
 #  - Generating new sentences from the original text
-# 
-# 
+#
+#
 # 3. TextRank: extractive & unsupervised text summarizatoin
 #  -  Concatenate text -> sentences -> sentence embeddings -> similarity matrix (between vectors) -> graph
 import urllib
 import zipfile
 
+import nltk
 import numpy as np
 import pandas as pd
-import nltk
-import settings
 
-import re
-import os
+import settings
+from utils import get_logger
 
 
 class TextSummarizer:
@@ -35,7 +36,11 @@ class TextSummarizer:
         self.model = model
         self.debug = debug
 
-    def load_data(self, stage: str) -> pd.DataFrame:
+        if self.debug:
+            self.logger = get_logger('DEBUG')
+
+    @staticmethod
+    def load_data(stage: str) -> pd.DataFrame:
 
         file_path = os.path.join(settings.crawled_data_dir, f"{stage}.csv")
         if os.path.exists(file_path):
@@ -56,10 +61,12 @@ class TextSummarizer:
         sentences = sent_tokenize(text)
 
         # sentences = [y for x in sentences for y in x] # flatten list
-        if self.debug: print('First 3 sentences:', sentences[:3])
+        if self.debug:
+            self.logger.debug(f'First 3 sentences: {sentences[:3]}')
         return sentences
 
-    def _glove_downloader(self):
+    @staticmethod
+    def _glove_downloader():
         # ### Make sentences embeddings from GloVe
         glove_folder = os.path.join(settings.PROJECT_ROOT, 'src', 'text_summarization', 'GloVe_embeddings')
         file_path = os.path.join(glove_folder, 'glove.6B.zip')
@@ -85,7 +92,8 @@ class TextSummarizer:
         f.close()
         return word_embeddings
 
-    def _text_preprocessing(self, sentences: list):
+    @staticmethod
+    def _text_preprocessing(sentences: list):
         # #### Text Preprocessing
         # Remove new-line character
         # sentences = [re.sub('\n+', ' ', sent) for sent in sentences]
@@ -101,7 +109,6 @@ class TextSummarizer:
 
         cleaned_sentences = [remove_stopwords(r.split()) for r in sentences]
         return cleaned_sentences
-
 
     def _make_sentence_embeddings(self, word_embeddings: dict, cleaned_sentences: list):
         # #### Make a sentence vector from word embeddings avg.
@@ -131,10 +138,11 @@ class TextSummarizer:
             for j in range(len(cleaned_sentences)):
                 if i != j:
                     sim_mat[i][j] = \
-                    cosine_similarity(sentence_embeddings[i].reshape(1, 100), sentence_embeddings[j].reshape(1, 100))[0, 0]
+                        cosine_similarity(sentence_embeddings[i].reshape(1, 100),
+                                          sentence_embeddings[j].reshape(1, 100))[0, 0]
         return sim_mat
 
-    def text_rank_summarization(self, cleaned_sentences: list, nof_output_sentencs: int):
+    def text_rank_summarization(self, cleaned_sentences: list):
         # ### Applying PageRank algorithm
         #### Convert into graph
 
@@ -153,25 +161,27 @@ class TextSummarizer:
         ranked_sentences = sorted(((scores[i], s) for i, s in enumerate(cleaned_sentences)), reverse=True)
 
         # Extract some sentences as the summary
+        top_k_sentences = [ranked_sentences[i][1] for i in range(self.nof_output_sentences)]
+        summary = ' '.join(top_k_sentences)
         if self.debug:
-            for i in range(nof_output_sentencs):
-                print(ranked_sentences[i][1])
-        return ranked_sentences
+            self.logger.debug(f'Top {self.nof_output_sentences}: {summary}')
+        return summary
 
     def inference(self):
 
         data = self.load_data(stage)
 
-        summarized_text = []
         if self.model == 'TextRank':
+            summarized_text = []
+
             for text in data['text']:
                 sentences = self._sentence_splitting(text)
                 cleaned_sentences = self._text_preprocessing(sentences)
                 if len(cleaned_sentences) > self.nof_output_sentences:
-                    top_k_sentences = self.text_rank_summarization(cleaned_sentences, self.nof_output_sentences)
+                    top_k_sentences = self.text_rank_summarization(cleaned_sentences)
                 else:
                     # No need to do summarizing
-                    top_k_sentences = cleaned_sentences
+                    top_k_sentences = None
                 summarized_text.append(top_k_sentences)
 
             data['summary'] = summarized_text
@@ -180,10 +190,11 @@ class TextSummarizer:
         else:
             pass
 
+
 if __name__ == '__main__':
     # Choose a stage to use TextRank algorithm
     stage = 'stage 0'
 
-    summarizer = TextSummarizer(stage=stage, model='TextRank', nof_output_sentences=3)
-    top_k_sentences = summarizer.inference()
-    print(top_k_sentences)
+    summarizer = TextSummarizer(stage=stage, model='TextRank', nof_output_sentences=3, debug=True)
+    data_summarized = summarizer.inference()
+    print(data_summarized)
